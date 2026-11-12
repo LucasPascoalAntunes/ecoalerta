@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoAlerta - Painel do servidor</title>
+<style>
+  :root { --bg:#f3f4f3; --card:#ffffff; --line:#e2e6e3; --txt:#1c2420; --muted:#6b756f; --verde:#1b6b47; --verde2:#e4f0e9; --ambar:#d98e04; --verm:#c0392b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: "Segoe UI", Roboto, Arial, sans-serif; background:var(--bg); color:var(--txt); font-size:14px; }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:center; gap:12px; }
+  header .logo { width:32px; height:32px; border-radius:8px; background:var(--verde); display:inline-flex; align-items:center; justify-content:center; }
+  header .logo svg { width:20px; height:20px; fill:#fff; }
+  header h1 { font-size:17px; margin:0; font-weight:600; }
+  header .st { margin-left:auto; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--verm); display:inline-block; }
+  .dot.on { background:var(--verde); }
+  main { padding:20px 24px; display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); max-width:1400px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .card h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 12px; font-weight:600; }
+  .kpis { display:grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap:10px; }
+  .kpi { border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .kpi b { display:block; font-size:24px; font-weight:700; color:var(--txt); line-height:1.1; }
+  .kpi span { font-size:12px; color:var(--muted); }
+  .bar { display:flex; align-items:center; gap:8px; margin:6px 0; font-size:13px; }
+  .bar .n { width:150px; color:var(--txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar .b { flex:1; height:10px; background:#edefee; border-radius:5px; overflow:hidden; }
+  .bar .b i { display:block; height:100%; background:var(--verde); }
+  .bar .v { width:32px; text-align:right; color:var(--muted); }
+  #log { font-family: Consolas, "Courier New", monospace; font-size:12px; max-height:340px; overflow:auto; }
+  #log div { padding:5px 0; border-bottom:1px solid var(--line); }
+  #log .t { color:var(--verde); font-weight:600; }
+  #log .h { color:var(--muted); }
+  .wide { grid-column: 1 / -1; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  .tag { padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+  .tag.resolvido { background:#e4f0e9; color:#1b6b47; } .tag.em_analise { background:#fff1d6; color:#8a5a00; } .tag.aberto { background:#fce4e1; color:#a12a1e; } .tag.invalido { background:#edefee; color:#6b756f; }
+  .saude p { margin:4px 0; }
+  a { color:var(--verde); }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.2 3.8 21.1l1.9.7.9-2.3c.5.2 1 .2 1.4.2 8 0 10-8 11-14-2 4-9 3-9 3s0-3 3-4c1 2 3 1.5 4 2z"/></svg></span>
+  <h1>EcoAlerta. Painel do servidor</h1>
+  <span class="st"><span class="dot" id="dot"></span><span id="wsstate">Tempo real desconectado</span> · <span id="clientes">0 aplicativos conectados</span> · versão <span id="versao">-</span></span>
+</header>
+<main>
+  <section class="card wide">
+    <h2>Indicadores</h2>
+    <div class="kpis" id="kpis"></div>
+  </section>
+  <section class="card">
+    <h2>Ocorrências por categoria</h2>
+    <div id="cat"></div>
+  </section>
+  <section class="card">
+    <h2>Bairros com mais ocorrências</h2>
+    <div id="bairro"></div>
+  </section>
+  <section class="card saude">
+    <h2>Servidor</h2>
+    <div id="saude"></div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px">Rotas: <a href="/api/health">/api/health</a> · <a href="/api/estatisticas">/api/estatisticas</a> · <a href="/api/relatos">/api/relatos</a> · <a href="/api/ambiente/pontos">/api/ambiente/pontos</a> · <a href="/api/relatorios/relatos.csv">exportar CSV</a></p>
+  </section>
+  <section class="card">
+    <h2>Eventos em tempo real</h2>
+    <div id="log"></div>
+  </section>
+  <section class="card wide">
+    <h2>Últimas ocorrências</h2>
+    <table><thead><tr><th>Nº</th><th>Categoria</th><th>Título</th><th>Bairro</th><th>Gravidade</th><th>Situação</th><th>Confirmações</th><th>Autor</th><th>Registrada em</th></tr></thead><tbody id="ultimos"></tbody></table>
+  </section>
+</main>
+<script>
+const nomes = {alagamento:'Alagamento', poluicao_ar:'Poluição do ar', descarte_irregular:'Descarte irregular', desmatamento:'Desmatamento', queimada:'Queimada', invasao_manancial:'Invasão de manancial', transito:'Trânsito e transporte', inversao_termica:'Inversão térmica', poluicao_sonora:'Poluição sonora', poluicao_agua:'Poluição da água', outro:'Outro problema'};
+const situacoes = {aberto:'Aberta', em_analise:'Em análise', resolvido:'Resolvida', invalido:'Inválida'};
+function barras(el, itens) {
+  const max = Math.max(1, ...itens.map(i => i.total));
+  el.innerHTML = itens.map(i => `<div class="bar"><span class="n" title="${i.nome}">${nomes[i.nome] || i.nome}</span><span class="b"><i style="width:${(i.total/max*100).toFixed(0)}%"></i></span><span class="v">${i.total}</span></div>`).join('');
+}
+function fmt(d) { try { return new Date(d).toLocaleString('pt-BR'); } catch { return d; } }
+function plural(n, s, p) { return n + ' ' + (n === 1 ? s : p); }
+async function carregar() {
+  try {
+    const [h, e, r] = await Promise.all([
+      fetch('/api/health').then(x => x.json()),
+      fetch('/api/estatisticas').then(x => x.json()),
+      fetch('/api/relatos?limite=12').then(x => x.json()),
+    ]);
+    document.getElementById('versao').textContent = h.versao;
+    document.getElementById('clientes').textContent = plural(h.clientes_websocket, 'aplicativo conectado', 'aplicativos conectados');
+    document.getElementById('kpis').innerHTML = [
+      ['Ocorrências', e.total_relatos], ['Em aberto', e.abertos], ['Em análise', e.em_analise], ['Resolvidas', e.resolvidos],
+      ['Últimas 24 h', e.ultimas_24h], ['Últimos 7 dias', e.ultimos_7_dias], ['Usuários', e.total_usuarios],
+      ['Confirmações', e.total_confirmacoes], ['Taxa de resolução', e.taxa_resolucao_pct.toFixed(0) + '%'],
+      ['Tempo médio até resolver', e.tempo_medio_resolucao_horas ? e.tempo_medio_resolucao_horas.toFixed(0) + ' h' : '-'],
+      ['Amostras de ar', e.total_amostras_ar],
+    ].map(([n, v]) => `<div class="kpi"><b>${v}</b><span>${n}</span></div>`).join('');
+    barras(document.getElementById('cat'), e.por_categoria);
+    barras(document.getElementById('bairro'), e.por_bairro);
+    document.getElementById('saude').innerHTML =
+      `<p>No ar há <b>${Math.floor(h.uptime_segundos/60)} min</b></p><p>Requisições atendidas: <b>${h.requisicoes_atendidas}</b></p>` +
+      `<p>Eventos publicados: <b>${h.eventos_emitidos}</b></p><p>Consultas a serviços externos: <b>${h.consultas_externas}</b> (${h.acertos_cache} respondidas pelo cache)</p>` +
+      `<p>Última coleta de qualidade do ar: <b>${h.ultima_coleta_ar ? fmt(h.ultima_coleta_ar) : 'aguardando'}</b></p><p>Banco de dados: ${h.banco}</p>`;
+    document.getElementById('ultimos').innerHTML = r.map(x =>
+      `<tr><td>${x.id}</td><td>${nomes[x.categoria] || x.categoria}</td><td>${x.titulo}</td><td>${x.bairro || '-'}</td><td>${x.gravidade} de 5</td><td><span class="tag ${x.status}">${situacoes[x.status] || x.status}</span></td><td>${x.confirmacoes}</td><td>${x.autor_nome}</td><td>${fmt(x.criado_em)}</td></tr>`).join('');
+  } catch (err) { console.error(err); }
+}
+function log(tipo, texto) {
+  const el = document.getElementById('log');
+  const d = document.createElement('div');
+  d.innerHTML = `<span class="h">${new Date().toLocaleTimeString('pt-BR')}</span> <span class="t">${tipo}</span> ${texto}`;
+  el.prepend(d);
+  while (el.children.length > 60) el.removeChild(el.lastChild);
+}
+function conectar() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen = () => { document.getElementById('dot').classList.add('on'); document.getElementById('wsstate').textContent = 'Tempo real conectado'; };
+  ws.onclose = () => { document.getElementById('dot').classList.remove('on'); document.getElementById('wsstate').textContent = 'Tempo real desconectado'; setTimeout(conectar, 3000); };
+  ws.onmessage = ev => {
+    try {
+      const m = JSON.parse(ev.data); const d = m.dados || {};
+      let texto = '';
+      if (m.tipo === 'conectado') texto = `${d.mensagem} (${plural(d.clientes, 'cliente', 'clientes')})`;
+      else if (m.tipo === 'relato_criado') texto = `nº ${d.id}: ${d.titulo} (${nomes[d.categoria] || d.categoria}, ${d.bairro || 'sem bairro'}), por ${d.autor_nome}`;
+      else if (m.tipo === 'status_alterado') texto = `nº ${d.relato.id}: ${situacoes[d.de] || d.de} para ${situacoes[d.relato.status] || d.relato.status}, por ${d.por}`;
+      else if (m.tipo === 'relato_confirmado') texto = `nº ${d.id}: ${d.confirmou ? 'confirmada' : 'confirmação removida'} por ${d.por} (total ${d.confirmacoes})`;
+      else if (m.tipo === 'comentario_criado') texto = `nº ${d.relato_id}: ${d.comentario.autor_nome} comentou "${d.comentario.texto}"`;
+      else if (m.tipo === 'amostra_ar') texto = `${d.ponto}: índice ${d.aqi_eu ?? '-'} (${d.classificacao})`;
+      else texto = JSON.stringify(d);
+      log(m.tipo, texto);
+      if (m.tipo !== 'conectado') carregar();
+    } catch (e) { log('?', ev.data); }
+  };
+}
+carregar(); setInterval(carregar, 15000); conectar();
+</script>
+</body>
+</html>
